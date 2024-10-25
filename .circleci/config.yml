@@ -1,63 +1,50 @@
 version: 2.1
 
+orbs:
+  node: circleci/node@5.0.2
+
 executors:
-  node_executor:
+  node14:
     docker:
-      - image: node:18  # Usa la imagen oficial de Node.js 18
+      - image: 'cimg/node:14.18.2'
+    resource_class: medium
+
+commands:
+  nodesetup:
+    description: checkout, restore cache, save cache, install dependencies
+    steps:
+      - checkout
+      - node/install-packages:
+         cache-path: ~/project/node_modules
+         app-dir: ~/project/
 
 jobs:
-  install_dependencies:
-    executor: node_executor
+  build_and_test:
+    executor: 'node14'
     steps:
-      - checkout
-      - run: npm install
-
-  lint:
-    executor: node_executor
-    steps:
-      - checkout
-      - run: npm install
-      - run: npm run lint
-
-  test_unit:
-    executor: node_executor
-    parallelism: 2
-    steps:
-      - checkout
-      - run: npm install
-      - run: npm run test:unit
-
-  test_integration:
-    executor: node_executor
-    steps:
-      - checkout
-      - run: npm install
-      - run: npm run test:integration
-
-  notify:
-    executor: node_executor
-    steps:
-      - run: |
-          echo "Notificación: El pipeline se ha completado con éxito"
-          curl -X POST -H "Content-Type: application/json" \
-          -d '{"text": "Pipeline completado: '"${CIRCLE_WORKFLOW_ID}"'"}' \
-          https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+      - nodesetup
+      - run:
+          name: Test
+          command: |
+            npm run coverage
+      - restore_cache:
+          keys:
+          - v1-result-cache
+      - run:
+          name: Coverage Test
+          command: |
+            mv /tmp/result /tmp/result-moved || true
+            npx lcov-total coverage/lcov.info > /tmp/result
+            chmod u+x coveragetest.sh
+            ./coveragetest.sh
+      - save_cache:
+          paths: coverage
+          key: v1-result-cache
+      - store_artifacts: # Save coverage reports as artifacts 
+          path: coverage
+          prefix: coverage
 
 workflows:
-  version: 2
-
-  complete_pipeline:
+  node_build_pipeline:
     jobs:
-      - install_dependencies
-      - lint:
-          requires:
-            - install_dependencies
-      - test_unit:
-          requires:
-            - lint
-      - test_integration:
-          requires:
-            - test_unit
-      - notify:
-          requires:
-            - test_integration  # Envía notificación tras las pruebas de integración
+      - build_and_test
