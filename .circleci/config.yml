@@ -11,43 +11,39 @@ executors:
 
 commands:
   nodesetup:
-    description: "Setup del proyecto con checkout, caché y dependencias"
+    description: "Setup del proyecto con checkout y dependencias"
     steps:
       - checkout  # Clona el repositorio
       - run:
-          name: Verificar Estructura del Proyecto
+          name: Verificar Archivos y Directorios
           command: |
-            echo "Listando archivos en el directorio actual:"
-            pwd  # Muestra la ruta actual
-            ls -la  # Lista archivos para verificar
-      - run:
-          name: Instalar Dependencias y Ejecutar Cobertura
-          command: |
-            cd circleci-nodejs-master
-            echo "Instalando dependencias..."
-            npm install  # Instala las dependencias
-            echo "Ejecutando pruebas de cobertura..."
-            npm run coverage  # Ejecuta la cobertura
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}
-      - save_cache:
-          paths:
-            - circleci-nodejs-master/node_modules
-          key: v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}
-      - store_artifacts:
-          path: circleci-nodejs-master/coverage  # Guarda los reportes como artefactos
-          prefix: coverage
+            echo "Verificando estructura de archivos:"
+            pwd  # Muestra el directorio actual
+            ls -Rla  # Lista todos los archivos de forma recursiva
 
 jobs:
   build_and_test:
     executor: node14
     steps:
-      - nodesetup  # Configura el entorno y ejecuta las pruebas
+      - nodesetup  # Configura y verifica los archivos
+      - run:
+          name: Instalar Dependencias y Ejecutar Pruebas
+          command: |
+            if [ -d "circleci-nodejs-master" ]; then
+              cd circleci-nodejs-master
+              npm install
+              npm run coverage
+            else
+              echo "Error: La carpeta circleci-nodejs-master no existe"
+              exit 1
+            fi
+      - store_artifacts:
+          path: circleci-nodejs-master/coverage
+          prefix: coverage
 
 workflows:
   version: 2
 
   node_build_pipeline:
     jobs:
-      - build_and_test  # Ejecuta la construcción y pruebas
+      - build_and_test
