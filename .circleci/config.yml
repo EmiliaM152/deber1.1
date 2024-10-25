@@ -1,51 +1,49 @@
 version: 2.1
 
 orbs:
-  node: circleci/node@5.0.2
+  node: circleci/node@5.0.2  # Orbe oficial para Node.js
 
 executors:
   node14:
     docker:
       - image: cimg/node:14.18.2  # Imagen oficial de Node.js 14.18.2
-    resource_class: medium
+    resource_class: medium  # Clase de recursos asignada
 
 commands:
   nodesetup:
     description: "Checkout, restore cache, install dependencies"
     steps:
-      - checkout  # Clona el repositorio
+      - checkout  # Clona el repositorio en el directorio predeterminado
       - run:
-          name: Cambiar al directorio correcto
-          command: cd circleci-nodejs-master/circleci-nodejs-master  # Cambia al subdirectorio donde están los archivos
+          name: Verificar Archivos
+          command: |
+            echo "Listando archivos en el directorio actual"
+            pwd  # Muestra la ruta actual
+            ls -la  # Lista los archivos para ver si package.json está presente
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "package-lock.json" }}  # Usa la caché si está disponible
       - node/install-packages:
           cache-path: ~/project/node_modules
-          app-dir: ~/project/circleci-nodejs-master/circleci-nodejs-master  # Ruta correcta del proyecto
+          app-dir: ~/project  # Asegura que apunte a la raíz donde están los archivos
       - save_cache:
           paths:
             - node_modules
           key: v1-dependencies-{{ checksum "package-lock.json" }}
 
 jobs:
-  jobs:
   build_and_test:
     executor: node14
     steps:
-      - checkout  # Clona el repositorio
+      - nodesetup  # Realiza el setup con dependencias y caché
       - run:
-          name: Listar Directorio Actual
+          name: Ejecutar Coverage
           command: |
-            echo "Listando archivos en el directorio actual"
-            pwd  # Muestra la ruta actual
-            ls -la  # Lista todos los archivos y carpetas
-      - run:
-          name: Listar Contenido de Subdirectorios
-          command: |
-            echo "Verificando contenido de circleci-nodejs-master"
-            ls -la circleci-nodejs-master  # Verifica que exista la carpeta
-
+            echo "Ejecutando pruebas de cobertura"
+            npm run coverage  # Ejecuta las pruebas de cobertura
+      - store_artifacts:  # Guarda los reportes como artefactos
+          path: coverage
+          prefix: coverage
 
 workflows:
   version: 2
