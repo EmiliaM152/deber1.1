@@ -6,43 +6,46 @@ orbs:
 executors:
   node14:
     docker:
-      - image: cimg/node:14.18.2  # Imagen oficial de Node.js 14.18.2
-    resource_class: medium  # Clase de recursos asignada
+      - image: cimg/node:14.18.2  # Imagen de Node.js
+    resource_class: medium
 
 commands:
   nodesetup:
     description: "Checkout, restore cache, install dependencies"
     steps:
-      - checkout  # Clona el repositorio en el directorio predeterminado
+      - checkout  # Clona el repositorio
       - run:
-          name: Verificar Archivos
+          name: Listar Archivos en Directorio Actual
           command: |
-            echo "Listando archivos en el directorio actual"
-            pwd  # Muestra la ruta actual
-            ls -la  # Lista los archivos para ver si package.json está presente
+            echo "Listando archivos:"
+            pwd  # Muestra el directorio actual
+            ls -la  # Lista archivos para verificar la estructura
+      - run:
+          name: Mover al Directorio Correcto
+          command: cd circleci-nodejs-master  # Cambia a la carpeta correcta
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "package-lock.json" }}  # Usa la caché si está disponible
+            - v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}  # Cachea dependencias
       - node/install-packages:
-          cache-path: ~/project/node_modules
-          app-dir: ~/project  # Asegura que apunte a la raíz donde están los archivos
+          cache-path: ~/project/circleci-nodejs-master/node_modules
+          app-dir: ~/project/circleci-nodejs-master  # Ruta correcta del proyecto
       - save_cache:
           paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package-lock.json" }}
+            - circleci-nodejs-master/node_modules
+          key: v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}
 
 jobs:
   build_and_test:
     executor: node14
     steps:
-      - nodesetup  # Realiza el setup con dependencias y caché
+      - nodesetup  # Ejecuta los pasos de setup y dependencias
       - run:
-          name: Ejecutar Coverage
+          name: Ejecutar Pruebas de Cobertura
           command: |
-            echo "Ejecutando pruebas de cobertura"
-            npm run coverage  # Ejecuta las pruebas de cobertura
-      - store_artifacts:  # Guarda los reportes como artefactos
-          path: coverage
+            cd circleci-nodejs-master
+            npm run coverage  # Ejecuta la cobertura
+      - store_artifacts:
+          path: circleci-nodejs-master/coverage  # Guarda los reportes
           prefix: coverage
 
 workflows:
