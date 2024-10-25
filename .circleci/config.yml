@@ -6,34 +6,38 @@ orbs:
 executors:
   node14:
     docker:
-      - image: cimg/node:14.18.2
+      - image: cimg/node:14.18.2  # Imagen oficial de Node.js 14.18.2
     resource_class: medium
 
 commands:
   nodesetup:
     description: "Checkout, restore cache, install dependencies"
     steps:
-      - checkout  # Clona el código del repositorio
+      - checkout  # Clona el repositorio
+      - run:
+          name: Cambiar al directorio correcto
+          command: cd circleci-nodejs-master/circleci-nodejs-master  # Cambia al subdirectorio donde están los archivos
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}
+            - v1-dependencies-{{ checksum "package-lock.json" }}  # Usa la caché si está disponible
       - node/install-packages:
           cache-path: ~/project/node_modules
-          app-dir: ~/project/circleci-nodejs-master  # Cambia al subdirectorio correcto
+          app-dir: ~/project/circleci-nodejs-master/circleci-nodejs-master  # Ruta correcta del proyecto
       - save_cache:
           paths:
-            - circleci-nodejs-master/node_modules
-          key: v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}
-
+            - node_modules
+          key: v1-dependencies-{{ checksum "package-lock.json" }}
 
 jobs:
   build_and_test:
     executor: node14
     steps:
-      - nodesetup
+      - nodesetup  # Ejecuta el setup para instalar dependencias
       - run:
           name: Ejecutar Coverage
-          command: npm run coverage
+          command: |
+            cd circleci-nodejs-master/circleci-nodejs-master
+            npm run coverage  # Ejecuta las pruebas de cobertura
       - restore_cache:
           keys:
             - v1-result-cache
@@ -48,8 +52,8 @@ jobs:
           paths:
             - coverage
           key: v1-result-cache
-      - store_artifacts:
-          path: coverage
+      - store_artifacts:  # Guarda los reportes como artefactos
+          path: circleci-nodejs-master/circleci-nodejs-master/coverage
           prefix: coverage
 
 workflows:
@@ -57,6 +61,4 @@ workflows:
 
   node_build_pipeline:
     jobs:
-      - build_and_test
-
-
+      - build_and_test  # Ejecuta el job de construcción y pruebas
