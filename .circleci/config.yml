@@ -13,17 +13,18 @@ commands:
   nodesetup:
     description: "Checkout, restore cache, install dependencies"
     steps:
-      - checkout
+      - checkout  # Clona el código del repositorio
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "package-lock.json" }}
+            - v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}
       - node/install-packages:
           cache-path: ~/project/node_modules
-          app-dir: ~/project  # Asegura que apunta al directorio correcto
+          app-dir: ~/project/circleci-nodejs-master  # Cambia al subdirectorio correcto
       - save_cache:
           paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package-lock.json" }}
+            - circleci-nodejs-master/node_modules
+          key: v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}
+
 
 jobs:
   build_and_test:
