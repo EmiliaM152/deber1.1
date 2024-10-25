@@ -1,43 +1,38 @@
 version: 2.1
 
 orbs:
-  node: circleci/node@5.0.2  # Usa el orbe oficial de Node.js
+  node: circleci/node@5.0.2
 
 executors:
   node14:
     docker:
-      - image: cimg/node:14.18.2  # Imagen oficial de Node.js 14.18.2
+      - image: cimg/node:14.18.2
     resource_class: medium
 
 commands:
   nodesetup:
     description: "Checkout, restore cache, install dependencies"
     steps:
-      - checkout  # Clona el repositorio completo
-      - run:
-          name: Cambiar al directorio correcto
-          command: cd circleci-nodejs-master  # Ajusta si package.json está en esta carpeta
+      - checkout
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "package-lock.json" }}  # Usa la caché si está disponible
+            - v1-dependencies-{{ checksum "package-lock.json" }}
       - node/install-packages:
-          cache-path: ~/project/circleci-nodejs-master/node_modules
-          app-dir: ~/project/circleci-nodejs-master  # Asegura que apunte al subdirectorio correcto
+          cache-path: ~/project/node_modules
+          app-dir: ~/project  # Asegura que apunta al directorio correcto
       - save_cache:
           paths:
-            - circleci-nodejs-master/node_modules
+            - node_modules
           key: v1-dependencies-{{ checksum "package-lock.json" }}
 
 jobs:
   build_and_test:
     executor: node14
     steps:
-      - nodesetup  # Ejecuta el setup con checkout y dependencias
+      - nodesetup
       - run:
           name: Ejecutar Coverage
-          command: |
-            cd circleci-nodejs-master
-            npm run coverage  # Ejecuta las pruebas de cobertura
+          command: npm run coverage
       - restore_cache:
           keys:
             - v1-result-cache
@@ -47,13 +42,13 @@ jobs:
             mv /tmp/result /tmp/result-moved || true
             npx lcov-total coverage/lcov.info > /tmp/result
             chmod u+x coveragetest.sh
-            ./coveragetest.sh  # Ejecuta el script de cobertura
+            ./coveragetest.sh
       - save_cache:
           paths:
             - coverage
           key: v1-result-cache
-      - store_artifacts:  # Guarda los reportes como artefactos
-          path: circleci-nodejs-master/coverage
+      - store_artifacts:
+          path: coverage
           prefix: coverage
 
 workflows:
@@ -61,5 +56,6 @@ workflows:
 
   node_build_pipeline:
     jobs:
-      - build_and_test  # Ejecuta la construcción y pruebas
+      - build_and_test
+
 
