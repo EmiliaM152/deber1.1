@@ -11,46 +11,43 @@ executors:
 
 commands:
   nodesetup:
-    description: "Checkout, restore cache, install dependencies"
+    description: "Setup del proyecto con checkout, caché y dependencias"
     steps:
       - checkout  # Clona el repositorio
       - run:
-          name: Listar Archivos en Directorio Actual
+          name: Verificar Estructura del Proyecto
           command: |
-            echo "Listando archivos:"
-            pwd  # Muestra el directorio actual
-            ls -la  # Lista archivos para verificar la estructura
+            echo "Listando archivos en el directorio actual:"
+            pwd  # Muestra la ruta actual
+            ls -la  # Lista archivos para verificar
       - run:
-          name: Mover al Directorio Correcto
-          command: cd circleci-nodejs-master  # Cambia a la carpeta correcta
+          name: Instalar Dependencias y Ejecutar Cobertura
+          command: |
+            cd circleci-nodejs-master
+            echo "Instalando dependencias..."
+            npm install  # Instala las dependencias
+            echo "Ejecutando pruebas de cobertura..."
+            npm run coverage  # Ejecuta la cobertura
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}  # Cachea dependencias
-      - node/install-packages:
-          cache-path: ~/project/circleci-nodejs-master/node_modules
-          app-dir: ~/project/circleci-nodejs-master  # Ruta correcta del proyecto
+            - v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}
       - save_cache:
           paths:
             - circleci-nodejs-master/node_modules
           key: v1-dependencies-{{ checksum "circleci-nodejs-master/package-lock.json" }}
+      - store_artifacts:
+          path: circleci-nodejs-master/coverage  # Guarda los reportes como artefactos
+          prefix: coverage
 
 jobs:
   build_and_test:
     executor: node14
     steps:
-      - nodesetup  # Ejecuta los pasos de setup y dependencias
-      - run:
-          name: Ejecutar Pruebas de Cobertura
-          command: |
-            cd circleci-nodejs-master
-            npm run coverage  # Ejecuta la cobertura
-      - store_artifacts:
-          path: circleci-nodejs-master/coverage  # Guarda los reportes
-          prefix: coverage
+      - nodesetup  # Configura el entorno y ejecuta las pruebas
 
 workflows:
   version: 2
 
   node_build_pipeline:
     jobs:
-      - build_and_test  # Ejecuta el job de construcción y pruebas
+      - build_and_test  # Ejecuta la construcción y pruebas
