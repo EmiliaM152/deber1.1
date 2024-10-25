@@ -1,39 +1,43 @@
 version: 2.1
 
 orbs:
-  node: circleci/node@5.0.2  # Usando el orbe oficial de Node.js
+  node: circleci/node@5.0.2  # Usa el orbe oficial de Node.js
 
 executors:
   node14:
     docker:
-      - image: cimg/node:14.18.2  # Imagen Node.js 14.18.2 desde cimg
-    resource_class: medium  # Define la clase de recursos
+      - image: cimg/node:14.18.2  # Imagen oficial de Node.js 14.18.2
+    resource_class: medium
 
 commands:
   nodesetup:
-    description: "Checkout, restore cache, save cache, install dependencies"
+    description: "Checkout, restore cache, install dependencies"
     steps:
-      - checkout  # Clona el código del repositorio
+      - checkout  # Clona el repositorio completo
+      - run:
+          name: Cambiar al directorio correcto
+          command: cd circleci-nodejs-master  # Ajusta si package.json está en esta carpeta
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "package-lock.json" }}
+            - v1-dependencies-{{ checksum "package-lock.json" }}  # Usa la caché si está disponible
       - node/install-packages:
-          cache-path: ~/project/node_modules
-          app-dir: ~/project  # Asegúrate que package.json esté en esta ruta
+          cache-path: ~/project/circleci-nodejs-master/node_modules
+          app-dir: ~/project/circleci-nodejs-master  # Asegura que apunte al subdirectorio correcto
       - save_cache:
           paths:
-            - node_modules
+            - circleci-nodejs-master/node_modules
           key: v1-dependencies-{{ checksum "package-lock.json" }}
 
 jobs:
   build_and_test:
     executor: node14
     steps:
-      - nodesetup
+      - nodesetup  # Ejecuta el setup con checkout y dependencias
       - run:
           name: Ejecutar Coverage
           command: |
-            npm run coverage  # Ejecuta la cobertura
+            cd circleci-nodejs-master
+            npm run coverage  # Ejecuta las pruebas de cobertura
       - restore_cache:
           keys:
             - v1-result-cache
@@ -48,8 +52,8 @@ jobs:
           paths:
             - coverage
           key: v1-result-cache
-      - store_artifacts:  # Guarda los reportes de cobertura como artefactos
-          path: coverage
+      - store_artifacts:  # Guarda los reportes como artefactos
+          path: circleci-nodejs-master/coverage
           prefix: coverage
 
 workflows:
@@ -57,4 +61,5 @@ workflows:
 
   node_build_pipeline:
     jobs:
-      - build_and_test  # Ejecuta el job de construcción y pruebas
+      - build_and_test  # Ejecuta la construcción y pruebas
+
