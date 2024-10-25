@@ -29,32 +29,23 @@ commands:
           key: v1-dependencies-{{ checksum "package-lock.json" }}
 
 jobs:
+  jobs:
   build_and_test:
     executor: node14
     steps:
-      - nodesetup  # Ejecuta el setup para instalar dependencias
+      - checkout  # Clona el repositorio
       - run:
-          name: Ejecutar Coverage
+          name: Listar Directorio Actual
           command: |
-            cd circleci-nodejs-master/circleci-nodejs-master
-            npm run coverage  # Ejecuta las pruebas de cobertura
-      - restore_cache:
-          keys:
-            - v1-result-cache
+            echo "Listando archivos en el directorio actual"
+            pwd  # Muestra la ruta actual
+            ls -la  # Lista todos los archivos y carpetas
       - run:
-          name: Coverage Test
+          name: Listar Contenido de Subdirectorios
           command: |
-            mv /tmp/result /tmp/result-moved || true
-            npx lcov-total coverage/lcov.info > /tmp/result
-            chmod u+x coveragetest.sh
-            ./coveragetest.sh
-      - save_cache:
-          paths:
-            - coverage
-          key: v1-result-cache
-      - store_artifacts:  # Guarda los reportes como artefactos
-          path: circleci-nodejs-master/circleci-nodejs-master/coverage
-          prefix: coverage
+            echo "Verificando contenido de circleci-nodejs-master"
+            ls -la circleci-nodejs-master  # Verifica que exista la carpeta
+
 
 workflows:
   version: 2
