@@ -1,50 +1,60 @@
 version: 2.1
 
 orbs:
-  node: circleci/node@5.0.2
+  node: circleci/node@5.0.2  # Usando el orbe oficial de Node.js
 
 executors:
   node14:
     docker:
-      - image: 'cimg/node:14.18.2'
-    resource_class: medium
+      - image: cimg/node:14.18.2  # Imagen Node.js 14.18.2 desde cimg
+    resource_class: medium  # Define la clase de recursos
 
 commands:
   nodesetup:
-    description: checkout, restore cache, save cache, install dependencies
+    description: "Checkout, restore cache, save cache, install dependencies"
     steps:
-      - checkout
+      - checkout  # Clona el código del repositorio
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
       - node/install-packages:
-         cache-path: ~/project/node_modules
-         app-dir: ~/project/
+          cache-path: ~/project/node_modules
+          app-dir: ~/project  # Asegúrate que package.json esté en esta ruta
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package-lock.json" }}
 
 jobs:
   build_and_test:
-    executor: 'node14'
+    executor: node14
     steps:
       - nodesetup
       - run:
-          name: Test
+          name: Ejecutar Coverage
           command: |
-            npm run coverage
+            npm run coverage  # Ejecuta la cobertura
       - restore_cache:
           keys:
-          - v1-result-cache
+            - v1-result-cache
       - run:
           name: Coverage Test
           command: |
             mv /tmp/result /tmp/result-moved || true
             npx lcov-total coverage/lcov.info > /tmp/result
             chmod u+x coveragetest.sh
-            ./coveragetest.sh
+            ./coveragetest.sh  # Ejecuta el script de cobertura
       - save_cache:
-          paths: coverage
+          paths:
+            - coverage
           key: v1-result-cache
-      - store_artifacts: # Save coverage reports as artifacts 
+      - store_artifacts:  # Guarda los reportes de cobertura como artefactos
           path: coverage
           prefix: coverage
 
 workflows:
+  version: 2
+
   node_build_pipeline:
     jobs:
-      - build_and_test
+      - build_and_test  # Ejecuta el job de construcción y pruebas
